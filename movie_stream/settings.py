@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +26,7 @@ INSTALLED_APPS = [
 # ── Middleware ────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',        # ← 2nd position (required)
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,10 +57,11 @@ TEMPLATES = [
 WSGI_APPLICATION = 'movie_stream.wsgi.application'
 
 # ── Database ──────────────────────────────────────────────
+# Uses /tmp on Linux/Vercel, local file on Windows dev machine
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': '/tmp/db.sqlite3',              # ← /tmp works on Vercel serverless
+        'NAME': '/tmp/db.sqlite3' if sys.platform != 'win32' else BASE_DIR / 'db.sqlite3',
     }
 }
 

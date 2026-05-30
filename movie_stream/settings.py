@@ -1,12 +1,14 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-*w%2p58oe&z482@eg8t%ahuco&lwhkspwpko^*l)8iyoif8!7y'
+# ── Security ──────────────────────────────────────────────
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-*w%2p58oe&z482@eg8t%ahuco&lwhkspwpko^*l)8iyoif8!7y')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']   # restrict in production
+ALLOWED_HOSTS = ['*']
 
 # ── Applications ──────────────────────────────────────────
 INSTALLED_APPS = [
@@ -20,28 +22,29 @@ INSTALLED_APPS = [
     'movies',
 ]
 
+# ── Middleware ────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',        # ← 2nd position (required)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'movie_stream.urls'
 
 # ── Templates ─────────────────────────────────────────────
-# ✅ FIX: DIRS was empty — Django couldn't find home.html / detail.html
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],   # ← ADDED
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -56,10 +59,11 @@ WSGI_APPLICATION = 'movie_stream.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': '/tmp/db.sqlite3',              # ← /tmp works on Vercel serverless
     }
 }
 
+# ── Password Validation ───────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -67,24 +71,26 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# ── Localisation ──────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE     = 'UTC'
 USE_I18N      = True
 USE_TZ        = True
 
+# ── Static files ──────────────────────────────────────────
+STATIC_URL  = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # ── Media files ───────────────────────────────────────────
 MEDIA_URL  = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# ── Static files ──────────────────────────────────────────
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
+# ── Misc ──────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── TMDB ──────────────────────────────────────────────────
-TMDB_API_KEY = '02281233d295d8ae8b3d1d23c1edaf07'
+TMDB_API_KEY = os.environ.get('TMDB_API_KEY', '02281233d295d8ae8b3d1d23c1edaf07')
 
 # ── iframe / YouTube embed fix ────────────────────────────
-# ✅ FIX: Default DENY blocks YouTube iframes — SAMEORIGIN allows them on your pages
 X_FRAME_OPTIONS = 'SAMEORIGIN'

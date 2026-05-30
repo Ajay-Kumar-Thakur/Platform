@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading… — CineVault</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--bg:#080a0f;--surface:#111520;--gold:#c9a84c;--gold-dim:#8a6b2a;--white:#f0ece3;--muted:#6b7280}
+        body{background:var(--bg);color:var(--white);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh}
+        body::before{content:'';position:fixed;inset:0;z-index:999;pointer-events:none;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");opacity:.35}
+        nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;gap:24px;padding:0 48px;height:70px;
+            background:linear-gradient(to bottom,rgba(8,10,15,.97),transparent);
+            backdrop-filter:blur(8px);border-bottom:1px solid rgba(201,168,76,.07)}
+        .back-btn{display:inline-flex;align-items:center;gap:8px;color:var(--muted);text-decoration:none;font-size:12px;letter-spacing:.1em;text-transform:uppercase;transition:color .2s}
+        .back-btn:hover{color:var(--gold)}
+        .back-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+        .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.12em;color:var(--gold);text-decoration:none;margin-left:auto}
+        .nav-logo span{color:var(--white);opacity:.7;font-size:20px}
+        .backdrop{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;
+            filter:blur(50px) brightness(.12) saturate(1.5);transform:scale(1.15);transition:background-image .6s}
+        .page{position:relative;z-index:1;padding-top:100px;min-height:100vh}
+
+        /* ── PLAYER ── */
+        .player-wrap{padding:0 48px;max-width:1400px;margin:0 auto}
+        .player-container{position:relative;background:#000;border-radius:6px;overflow:hidden;
+            box-shadow:0 0 0 1px rgba(201,168,76,.2),0 40px 120px rgba(0,0,0,.95);
+            animation:playerIn .7s cubic-bezier(.22,.68,0,1.1) both}
+        @keyframes playerIn{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:none}}
+        .player-container::before,.player-container::after{content:'';position:absolute;width:28px;height:28px;z-index:10;pointer-events:none}
+        .player-container::before{top:0;left:0;border-top:2px solid var(--gold);border-left:2px solid var(--gold)}
+        .player-container::after{bottom:0;right:0;border-bottom:2px solid var(--gold);border-right:2px solid var(--gold)}
+        video{width:100%;display:block;aspect-ratio:16/9;background:#000}
+        .yt-frame{width:100%;aspect-ratio:16/9;border:none;display:block;background:#000}
+        .no-video{width:100%;aspect-ratio:16/9;background:#0a0c12;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;gap:16px;color:var(--muted)}
+        .no-video svg{width:48px;height:48px;opacity:.3}
+        .no-video p{font-size:13px;letter-spacing:.1em;text-transform:uppercase;opacity:.5}
+        .player-badge{position:absolute;top:16px;right:16px;z-index:20;padding:5px 12px;
+            background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);
+            border-radius:2px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold)}
+
+        /* ── INFO ── */
+        .info-grid{display:grid;grid-template-columns:220px 1fr;gap:52px;padding:56px 48px 100px;max-width:1400px;margin:0 auto;animation:fadeUp .6s .25s ease both}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+        .poster-col{display:flex;flex-direction:column;gap:20px}
+        .poster-thumb{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:4px;
+            box-shadow:0 24px 60px rgba(0,0,0,.8);border:1px solid rgba(201,168,76,.15)}
+        .poster-placeholder{width:100%;aspect-ratio:2/3;border-radius:4px;background:var(--surface);
+            display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;
+            letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(255,255,255,.05)}
+        .poster-meta{display:flex;flex-direction:column}
+        .meta-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;
+            border-bottom:1px solid rgba(255,255,255,.05);font-size:12px}
+        .meta-row:last-child{border-bottom:none}
+        .meta-label{color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-size:10px}
+        .meta-val{color:var(--white);font-weight:400;text-align:right;max-width:130px}
+        .info-col{display:flex;flex-direction:column;gap:24px}
+        .movie-eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:10px}
+        .movie-eyebrow::before{content:'';width:28px;height:1px;background:var(--gold)}
+        .movie-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,6vw,80px);letter-spacing:.04em;line-height:.88}
+        .divider{width:64px;height:1px;background:linear-gradient(to right,var(--gold),transparent)}
+        .movie-description{font-size:15px;line-height:1.85;color:rgba(240,236,227,.65);max-width:600px}
+        .genre-tags{display:flex;gap:8px;flex-wrap:wrap}
+        .genre-tag{padding:4px 12px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);
+            border-radius:2px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+        .action-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-top:8px}
+        .btn-primary{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;background:var(--gold);color:#080a0f;
+            font-size:12px;font-weight:500;letter-spacing:.15em;text-transform:uppercase;border-radius:2px;border:none;cursor:pointer;
+            transition:background .2s,transform .15s;font-family:'DM Sans',sans-serif;text-decoration:none}
+        .btn-primary:hover{background:#e0b85a;transform:translateY(-1px)}
+        .btn-primary svg{width:14px;height:14px;fill:currentColor}
+        .btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:13px 28px;background:transparent;color:var(--white);
+            font-size:12px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;border-radius:2px;
+            border:1px solid rgba(240,236,227,.2);transition:border-color .2s,color .2s}
+        .btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+        .btn-ghost svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+
+        .skel{background:var(--surface);border-radius:3px;animation:pulse 1.5s infinite}
+        .skel-title{height:72px;width:65%}.skel-line{height:14px;margin-top:8px}.skel-line2{height:14px;width:75%;margin-top:6px}.skel-poster{width:100%;aspect-ratio:2/3;border-radius:4px}
+        @keyframes pulse{0%,100%{opacity:.3}50%{opacity:.6}}
+
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+        @media(max-width:768px){nav{padding:0 20px}.player-wrap{padding:0 16px}.info-grid{grid-template-columns:1fr;padding:32px 20px 60px;gap:28px}.poster-col{display:none}}
+    </style>
+</head>
+<body>
+<div class="backdrop" id="backdrop"></div>
+<nav>
+    <a href="/" class="back-btn">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        All Films
+    </a>
+    <a href="/" class="nav-logo">Cine<span>Vault</span></a>
+</nav>
+
+<div class="page">
+    <div class="player-wrap">
+        <div class="player-container" id="player-container">
+            <div class="no-video">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" opacity=".3"/>
+                </svg>
+                <p>Loading player…</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-grid">
+        <div class="poster-col" id="poster-col"><div class="skel skel-poster"></div></div>
+        <div class="info-col" id="info-col">
+            <div class="movie-eyebrow">Now Playing</div>
+            <div class="skel skel-title"></div>
+            <div class="divider"></div>
+            <div class="skel skel-line"></div>
+            <div class="skel skel-line2"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const movieId = "{{ movie_id }}";
+
+async function loadMovie() {
+    const posterCol = document.getElementById('poster-col');
+    const infoCol   = document.getElementById('info-col');
+    const container = document.getElementById('player-container');
+
+    try {
+        const res = await fetch(`/api/movies/${movieId}/`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} — movie not found`);
+        const movie = await res.json();
+
+        document.title = `${movie.title} — CineVault`;
+
+        // ── Backdrop ─────────────────────────────────────────
+        if (movie.poster_url) {
+            document.getElementById('backdrop').style.backgroundImage = `url('${movie.poster_url}')`;
+        }
+
+        // ── Player: local video > YouTube trailer > placeholder ──
+        if (movie.video_url) {
+            container.innerHTML = `
+                <span class="player-badge">Now Playing</span>
+                <video id="movie-video" controls preload="metadata"
+                       poster="${movie.poster_url || ''}">
+                    <source src="${movie.video_url}" type="video/mp4">
+                    Your browser does not support HTML5 video.
+                </video>`;
+        } else if (movie.trailer_url) {
+    const key = movie.trailer_url.split('/embed/')[1]?.split('?')[0];
+    const watchUrl = `https://www.youtube.com/watch?v=${key}`;
+    const thumb = `https://img.youtube.com/vi/${key}/maxresdefault.jpg`;
+
+    container.innerHTML = `
+        <span class="player-badge">Official Trailer</span>
+        <a href="${watchUrl}" target="_blank" rel="noopener"
+           style="display:block;position:relative;width:100%;aspect-ratio:16/9;background:#000;cursor:pointer;text-decoration:none;">
+            <img src="${thumb}"
+                 onerror="this.src='https://img.youtube.com/vi/${key}/hqdefault.jpg'"
+                 style="width:100%;height:100%;object-fit:cover;opacity:.75;display:block;">
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+                <div style="width:72px;height:72px;background:rgba(201,168,76,.92);border-radius:50%;
+                            display:flex;align-items:center;justify-content:center;
+                            box-shadow:0 8px 32px rgba(0,0,0,.6);transition:transform .2s;"
+                     onmouseover="this.style.transform='scale(1.1)'"
+                     onmouseout="this.style.transform='scale(1)'">
+                    <svg viewBox="0 0 24 24" width="28" height="28" fill="#080a0f">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </div>
+                <span style="color:#f0ece3;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+                             font-family:'DM Sans',sans-serif;opacity:.85;">
+                    Watch Trailer on YouTube
+                </span>
+            </div>
+        </a>`;
+        } else {
+            container.innerHTML = `
+                <div class="no-video">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/>
+                    </svg>
+                    <p>No video available — upload via Admin</p>
+                </div>`;
+        }
+
+        // ── Poster sidebar ────────────────────────────────────
+        posterCol.innerHTML = `
+            ${movie.poster_url
+                ? `<img class="poster-thumb" src="${movie.poster_url}" alt="${movie.title}"
+                       onerror="this.outerHTML='<div class=poster-placeholder>No Poster</div>'">`
+                : '<div class="poster-placeholder">No Poster</div>'
+            }
+            <div class="poster-meta">
+                ${movie.genre    ? `<div class="meta-row"><span class="meta-label">Genre</span><span class="meta-val">${movie.genre}</span></div>` : ''}
+                ${movie.year     ? `<div class="meta-row"><span class="meta-label">Year</span><span class="meta-val">${movie.year}</span></div>` : ''}
+                ${movie.duration ? `<div class="meta-row"><span class="meta-label">Duration</span><span class="meta-val">${movie.duration}</span></div>` : ''}
+                ${movie.rating   ? `<div class="meta-row"><span class="meta-label">Rating</span><span class="meta-val">★ ${movie.rating} / 10</span></div>` : ''}
+                <div class="meta-row">
+                    <span class="meta-label">Format</span>
+                    <span class="meta-val">${movie.video_url ? 'MP4 · HD' : movie.trailer_url ? 'YouTube Trailer' : '—'}</span>
+                </div>
+            </div>`;
+
+        // ── Info column ───────────────────────────────────────
+        const genres = movie.genre
+            ? movie.genre.split(',').map(g => `<span class="genre-tag">${g.trim()}</span>`).join('')
+            : '';
+
+        let playBtn = '';
+        if (movie.video_url) {
+            playBtn = `
+                <button class="btn-primary"
+                        onclick="document.getElementById('movie-video').play();this.blur()">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    Play Film
+                </button>`;
+        } else if (movie.trailer_url) {
+            // ✅ FIX: extract the video key from the nocookie embed URL,
+            // then build a clean youtube.com/watch?v=KEY link
+            const key = movie.trailer_url.split('/embed/')[1]?.split('?')[0];
+            const watchUrl = `https://www.youtube.com/watch?v=${key}`;
+
+            playBtn = `
+                <a class="btn-primary" href="${watchUrl}" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    Watch on YouTube
+                </a>`;
+        }
+
+        infoCol.innerHTML = `
+            <div class="movie-eyebrow">Now Playing</div>
+            <h1 class="movie-title">${movie.title}</h1>
+            <div class="divider"></div>
+            ${genres ? `<div class="genre-tags">${genres}</div>` : ''}
+            <p class="movie-description">${movie.description || 'No description available.'}</p>
+            <div class="action-row">
+                ${playBtn}
+                <a href="/" class="btn-ghost">
+                    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                    Back to Vault
+                </a>
+            </div>`;
+
+    } catch (err) {
+        console.error('[CineVault] Error loading movie:', err);
+        document.getElementById('player-container').innerHTML = `
+            <div class="no-video">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/>
+                </svg>
+                <p>Failed to load player</p>
+            </div>`;
+        infoCol.innerHTML = `
+            <div class="movie-eyebrow">Error</div>
+            <h1 class="movie-title" style="font-size:40px;color:rgba(240,236,227,.3)">Film Not Found</h1>
+            <p style="color:var(--muted);font-size:14px">${err.message}</p>
+            <div style="margin-top:20px">
+                <a href="/" class="btn-ghost">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    Back to Vault
+                </a>
+            </div>`;
+    }
+}
+
+loadMovie();
+</script>
+</body>
+</html>

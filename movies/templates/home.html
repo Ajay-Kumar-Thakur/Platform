@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineVault — Movie Streaming</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg:#080a0f; --bg2:#0d1017; --surface:#111520;
+            --gold:#c9a84c; --gold-dim:#8a6b2a;
+            --white:#f0ece3; --muted:#6b7280; --card-w:220px;
+        }
+        html { scroll-behavior: smooth; }
+        body { background:var(--bg); color:var(--white); font-family:'DM Sans',sans-serif; font-weight:300; min-height:100vh; overflow-x:hidden; }
+
+        /* Film grain overlay */
+        body::before { content:''; position:fixed; inset:0; z-index:999; pointer-events:none;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); opacity:.35; }
+
+        /* ── NAV ── */
+        nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0 48px; height:70px;
+            background:linear-gradient(to bottom,rgba(8,10,15,.97) 0%,rgba(8,10,15,.0) 100%);
+            backdrop-filter:blur(8px); border-bottom:1px solid rgba(201,168,76,.08); }
+        .logo { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:.12em; color:var(--gold); text-decoration:none; }
+        .logo span { color:var(--white); opacity:.7; font-size:22px; }
+        .nav-links { display:flex; gap:32px; }
+        .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; letter-spacing:.08em; text-transform:uppercase; transition:color .2s; }
+        .nav-links a:hover, .nav-links a.active { color:var(--gold); }
+
+        /* ── HERO ── */
+        .hero { position:relative; height:72vh; min-height:480px; display:flex; align-items:flex-end; padding:0 48px 64px; overflow:hidden; }
+        .hero-backdrop { position:absolute; inset:0; background-size:cover; background-position:center top; transition:background-image .8s ease; }
+        .hero-backdrop::after { content:''; position:absolute; inset:0;
+            background: linear-gradient(to top, var(--bg) 0%, rgba(8,10,15,.75) 40%, rgba(8,10,15,.3) 70%, transparent 100%),
+                        linear-gradient(to right, var(--bg) 0%, rgba(8,10,15,.6) 40%, transparent 70%); }
+        .hero-content { position:relative; z-index:1; max-width:600px; }
+        .hero-eyebrow { font-size:11px; letter-spacing:.25em; text-transform:uppercase; color:var(--gold); margin-bottom:16px; display:flex; align-items:center; gap:12px; opacity:0; animation:fadeInUp .6s .2s ease forwards; }
+        .hero-eyebrow::before { content:''; display:block; width:36px; height:1px; background:var(--gold); }
+        .hero h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(56px,7vw,96px); line-height:.88; letter-spacing:.04em; margin-bottom:20px; opacity:0; animation:fadeInUp .6s .35s ease forwards; }
+        .hero h1 em { font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; color:var(--gold); }
+        .hero-desc { font-size:15px; line-height:1.75; color:rgba(240,236,227,.6); max-width:420px; margin-bottom:36px; opacity:0; animation:fadeInUp .6s .5s ease forwards; }
+        .hero-stats { display:flex; gap:48px; opacity:0; animation:fadeInUp .6s .65s ease forwards; }
+        .stat { display:flex; flex-direction:column; gap:4px; }
+        .stat-num { font-family:'Bebas Neue',sans-serif; font-size:34px; letter-spacing:.05em; color:var(--white); }
+        .stat-label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+        .hero-featured { position:absolute; right:80px; top:50%; transform:translateY(-40%); z-index:2; display:none; flex-direction:column; align-items:flex-end; gap:12px; opacity:0; animation:fadeInRight .8s .4s ease forwards; }
+        .hero-featured.visible { display:flex; }
+        @keyframes fadeInRight { from{opacity:0;transform:translateY(-40%) translateX(30px)} to{opacity:1;transform:translateY(-40%) translateX(0)} }
+        .hero-poster { width:180px; aspect-ratio:2/3; object-fit:cover; border-radius:4px;
+            box-shadow: 0 30px 80px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.2); }
+        .hero-watch-btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; background:var(--gold); color:#080a0f;
+            font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; border-radius:2px; text-decoration:none; transition:background .2s; }
+        .hero-watch-btn:hover { background:#e0b85a; }
+        .hero-watch-btn svg { width:12px; height:12px; fill:currentColor; }
+
+        /* ── SECTION ── */
+        .movies-section { padding:0 0 100px; }
+        .section-header { display:flex; align-items:baseline; justify-content:space-between; padding:48px 48px 28px; }
+        .section-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:.14em; display:flex; align-items:center; gap:16px; }
+        .section-title::after { content:''; display:block; width:60px; height:1px; background:linear-gradient(to right,var(--gold),transparent); }
+        .movie-count { font-size:12px; letter-spacing:.1em; color:var(--muted); }
+
+        /* ── GRID ── */
+        .movies-track { display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr)); gap:20px; padding:0 48px; }
+
+        /* ── CARD ── */
+        .card { position:relative; border-radius:4px; overflow:hidden; background:var(--surface); cursor:pointer;
+            transition:transform .35s cubic-bezier(.22,.68,0,1.2), box-shadow .35s;
+            animation:fadeUp .5s ease both; text-decoration:none; color:inherit; display:block; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        .card:hover { transform:translateY(-10px) scale(1.02); box-shadow:0 32px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(201,168,76,.3); z-index:10; }
+        .card-poster { width:100%; aspect-ratio:2/3; object-fit:cover; display:block; transition:filter .4s; background:var(--surface);
+            background-image: linear-gradient(135deg, #1a1f2e 0%, #111520 100%); }
+        .card:hover .card-poster { filter:brightness(.45) saturate(1.2); }
+        .card-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(8,10,15,1) 0%, rgba(8,10,15,.5) 40%, transparent 72%); }
+        .card-body { position:absolute; bottom:0; left:0; right:0; padding:24px 14px 14px; }
+        .card-meta { display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap; }
+        .card-genre { font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px; }
+        .card-year { font-size:9px; letter-spacing:.1em; color:var(--muted); }
+        .card-rating { margin-left:auto; font-size:10px; font-weight:500; color:var(--gold); display:flex; align-items:center; gap:3px; white-space:nowrap; }
+        .card-title { font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:.06em; line-height:1.1; margin-bottom:8px; color:var(--white); }
+        .card-desc { font-size:11px; line-height:1.6; color:rgba(240,236,227,.5); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:14px;
+            opacity:0; transform:translateY(8px); transition:opacity .3s .05s, transform .3s .05s; }
+        .card:hover .card-desc { opacity:1; transform:translateY(0); }
+        .watch-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; background:var(--gold); color:#080a0f;
+            font-size:10px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; border-radius:2px;
+            opacity:0; transform:translateY(10px); transition:opacity .3s .08s, transform .3s .08s, background .2s; }
+        .card:hover .watch-btn { opacity:1; transform:translateY(0); }
+        .watch-btn svg { width:11px; height:11px; fill:currentColor; }
+        .card:nth-child(1){animation-delay:.04s}.card:nth-child(2){animation-delay:.08s}
+        .card:nth-child(3){animation-delay:.12s}.card:nth-child(4){animation-delay:.16s}
+        .card:nth-child(5){animation-delay:.2s}.card:nth-child(6){animation-delay:.24s}
+        .card:nth-child(7){animation-delay:.28s}.card:nth-child(8){animation-delay:.32s}
+        .card:nth-child(n+9){animation-delay:.36s}
+
+        /* ── SKELETON ── */
+        .skeleton { background:var(--surface); border-radius:4px; aspect-ratio:2/3; position:relative; overflow:hidden; }
+        .skeleton::after { content:''; position:absolute; inset:0;
+            background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.04) 50%,transparent 100%);
+            animation:shimmer 1.4s infinite; }
+        @keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+
+        /* ── EMPTY / ERROR ── */
+        .state-msg { grid-column:1/-1; padding:100px 0; text-align:center; color:var(--muted); font-size:14px; }
+        .state-msg strong { display:block; font-family:'Bebas Neue',sans-serif; font-size:42px; color:rgba(240,236,227,.08); letter-spacing:.1em; margin-bottom:16px; }
+        .state-msg a { color:var(--gold); text-decoration:none; }
+
+        /* ── FOOTER ── */
+        footer { border-top:1px solid rgba(255,255,255,.05); padding:40px 48px; display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:12px; }
+
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+
+        @media(max-width:900px){ .hero-featured { display:none !important; } }
+        @media(max-width:768px){
+            nav { padding:0 20px; }
+            .nav-links { display:none; }
+            .hero { padding:0 20px 48px; height:60vh; }
+            .section-header, .movies-track { padding-left:20px; padding-right:20px; }
+            footer { padding:32px 20px; flex-direction:column; gap:12px; text-align:center; }
+            :root { --card-w:150px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="/" class="logo">Cine<span>Vault</span></a>
+    <div class="nav-links">
+        <a href="/" class="active">Home</a>
+    </div>
+</nav>
+
+<div class="hero">
+    <div class="hero-backdrop" id="hero-backdrop"></div>
+    <div class="hero-content">
+        <div class="hero-eyebrow">Featured Collection</div>
+        <h1>The <em>Art</em><br>of Cinema</h1>
+        <p class="hero-desc">A curated vault of timeless films — from silent masterpieces to modern classics. Every frame, a story.</p>
+        <div class="hero-stats">
+            <div class="stat">
+                <span class="stat-num" id="stat-count">—</span>
+                <span class="stat-label">Films</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num">4K</span>
+                <span class="stat-label">Quality</span>
+            </div>
+            <div class="stat">
+                <span class="stat-num">∞</span>
+                <span class="stat-label">Streaming</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-featured" id="hero-featured">
+        <img class="hero-poster" id="hero-poster" src="" alt="">
+        <a class="hero-watch-btn" id="hero-watch-link" href="#">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Watch Now
+        </a>
+    </div>
+</div>
+
+<div class="movies-section">
+    <div class="section-header">
+        <div class="section-title">All Films</div>
+        <span class="movie-count" id="movie-count"></span>
+    </div>
+    <div class="movies-track" id="movies-grid">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+    </div>
+</div>
+
+<footer>
+    <a href="/" class="logo" style="text-decoration:none;">Cine<span>Vault</span></a>
+    <span>© 2025 CineVault. All rights reserved.</span>
+</footer>
+
+<script>
+const grid  = document.getElementById('movies-grid');
+const count = document.getElementById('movie-count');
+const stat  = document.getElementById('stat-count');
+
+function starSVG() {
+    return `<svg viewBox="0 0 24 24" width="9" height="9" fill="#c9a84c"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+}
+
+function firstGenre(genreStr) {
+    if (!genreStr) return '';
+    return genreStr.split(',')[0].trim();
+}
+
+function buildCard(movie) {
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = `/movie/${movie.id}/`;
+
+    const posterSrc = movie.poster_url || '';
+    const genre     = movie.genre
+        ? `<span class="card-genre">${firstGenre(movie.genre)}</span>`
+        : '<span class="card-genre">Feature Film</span>';
+    const year      = movie.year   ? `<span class="card-year">${movie.year}</span>` : '';
+    const rating    = movie.rating ? `<span class="card-rating">${starSVG()} ${movie.rating}</span>` : '';
+    const desc      = movie.description || '';
+
+    a.innerHTML = `
+        <img class="card-poster" src="${posterSrc}" alt="${movie.title}" loading="lazy"
+             onerror="this.style.background='linear-gradient(135deg,#1a1f2e,#111520)'">
+        <div class="card-overlay"></div>
+        <div class="card-body">
+            <div class="card-meta">${genre}${year}${rating}</div>
+            <div class="card-title">${movie.title}</div>
+            <div class="card-desc">${desc}</div>
+            <div class="watch-btn">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                Watch Now
+            </div>
+        </div>`;
+    return a;
+}
+
+function setHero(movie) {
+    if (movie.poster_url) {
+        document.getElementById('hero-backdrop').style.backgroundImage = `url('${movie.poster_url}')`;
+    }
+    const featured = document.getElementById('hero-featured');
+    const poster   = document.getElementById('hero-poster');
+    const link     = document.getElementById('hero-watch-link');
+    if (movie.poster_url) {
+        poster.src = movie.poster_url;
+        poster.alt = movie.title;
+        link.href  = `/movie/${movie.id}/`;
+        featured.classList.add('visible');
+    }
+}
+
+async function loadMovies() {
+    try {
+        const res = await fetch('/api/movies/');
+        if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+
+        const movies = await res.json();
+        grid.innerHTML = '';
+
+        if (!movies.length) {
+            grid.innerHTML = `
+                <div class="state-msg">
+                    <strong>No Films Yet</strong>
+                    Add movies via the <a href="/admin/">admin panel</a>.
+                </div>`;
+            stat.textContent = '0';
+            return;
+        }
+
+        count.textContent = `${movies.length} film${movies.length !== 1 ? 's' : ''}`;
+        stat.textContent  = movies.length;
+        setHero(movies[0]);
+        movies.forEach(m => grid.appendChild(buildCard(m)));
+
+    } catch (err) {
+        console.error('[CineVault] loadMovies error:', err);
+        grid.innerHTML = `
+            <div class="state-msg">
+                <strong>Error</strong>
+                Could not load films: ${err.message}<br>
+                <small style="opacity:.5;margin-top:8px;display:block;">Open DevTools → Console for details</small>
+            </div>`;
+    }
+}
+
+loadMovies();
+</script>
+</body>
+</html>
